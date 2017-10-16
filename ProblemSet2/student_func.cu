@@ -166,69 +166,7 @@ void gaussian_blur(const unsigned char* const inputChannel,
   outputChannel[current_index]= sum;
   
 }
-__global__
-void gaussian_blur3(const unsigned char* const inputChannel,
-                   unsigned char* const outputChannel,
-                   int numRows, int numCols,
-                   const float* const filter, const int filterWidth)
-{
 
-  int pixels_number=numRows*numCols;
-  int block_size=1024;
-  int current_index = block_size* blockIdx.x + threadIdx.x;
-	
-  int filter_size=filterWidth*filterWidth;
-  extern __shared__ float sh_filter[];
-  
-  int num_filter_elements_per_thread=filter_size/block_size;
-  if(filter_size%block_size>0)
-	num_filter_elements_per_thread++;
-
-  if(threadIdx.x<filter_size){
-	for(int i=0;i<num_filter_elements_per_thread;i++){
-		int idx=threadIdx.x*num_filter_elements_per_thread+i;
-		if(idx>=filter_size)
-			continue;
-		sh_filter[idx]=filter[idx];	
-	}
-  }
-
-  if(current_index < pixels_number)
-  	outputChannel[current_index]=0.f;
-
-  __syncthreads(); 
-
- 
-
-  if(current_index >= pixels_number)
-     return;
- 
-  int img_x=current_index/numCols;
-  int img_y=(current_index%numCols);
- 
-
-  int fcx=filterWidth/2;
-  int fcy=fcx;
-  for(int i=0;i<filter_size;i++){
-	int fx=i/filterWidth;
-	int fy=(i%filterWidth);
-	int Imx=fcx-fx+img_x;
-	int Imy=fcy-fy+img_y;
-	
-	if(Imx>=numRows)
-		Imx=numRows-1;
-	if(Imy >=numCols)
-		Imy=numCols-1;
-	if(Imx<0)
-		Imx=0;
-	if(Imy<0)
-		Imy=0;
-	
-	outputChannel[Imx*numCols+Imy]+=sh_filter[i]* inputChannel[current_index];
-	__syncthreads(); 
-  }
-  
-}
 
 //This kernel takes in an image represented as a uchar4 and splits
 //it into three images consisting of only one color channel each
